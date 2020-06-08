@@ -1,45 +1,35 @@
 package com.podcrash.service.connection;
 
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
-import redis.clients.jedis.JedisShardInfo;
-import redis.clients.jedis.ShardedJedis;
-import redis.clients.jedis.ShardedJedisPool;
 
-import java.util.ArrayList;
-import java.util.List;
+public class RedisConnection implements Connection<Jedis> {
 
-public class RedisConnection implements Connection<ShardedJedis> {
+    private final RedisCredentials redisCredentials;
+    private JedisPool jedisPool;
 
-    private final RedisCredentials[] redisCredentials;
-    private ShardedJedisPool shardedJedisPool;
-
-    public RedisConnection(RedisCredentials[] redisCredentials) {
+    public RedisConnection(RedisCredentials redisCredentials) {
         this.redisCredentials = redisCredentials;
     }
 
     @Override
     public void connect() {
         JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
-        List<JedisShardInfo> jedisShards = new ArrayList<>();
-        for (RedisCredentials credentials : redisCredentials) {
-            JedisShardInfo jedisShardInfo =
-                    new JedisShardInfo(
-                            credentials.getHost(),
-                            credentials.getPort());
-            jedisShardInfo.setPassword(credentials.getPassword());
-            jedisShards.add(jedisShardInfo);
-        }
-        this.shardedJedisPool = new ShardedJedisPool(jedisPoolConfig,
-                jedisShards);
+        this.jedisPool = new JedisPool(jedisPoolConfig,
+                this.redisCredentials.getHost(),
+                this.redisCredentials.getPort(),
+                2000,
+                this.redisCredentials.getPassword());
     }
 
     @Override
-    public ShardedJedis getConnection() {
-        return this.shardedJedisPool.getResource();
+    public Jedis getConnection() {
+        return this.jedisPool.getResource();
     }
 
     @Override
     public void close() {
-        this.shardedJedisPool.close();
+        this.jedisPool.close();
     }
 }
