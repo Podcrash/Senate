@@ -1,6 +1,7 @@
 package com.podcrash.service;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.podcrash.service.communication.Restful;
 import spark.Spark;
 
@@ -15,18 +16,22 @@ public class Service {
         for (Method method : methods) {
             if (!method.isAnnotationPresent(Restful.Endpoint.class))
                 continue;
+            if (method.getParameterCount() != 1)
+                continue;
+            if (method.getParameterTypes()[0] != JsonObject.class)
+                continue;
             Restful.Endpoint endpoint = method.getDeclaredAnnotation(Restful.Endpoint.class);
             switch (endpoint.reqType()) {
                 case GET:
-                    Spark.get(endpoint.route(), (req, res) -> method.invoke(restful), GSON::toJson);
+                    Spark.get(endpoint.route(), (req, res) -> method.invoke(restful, GSON.fromJson(req.body(), JsonObject.class)), GSON::toJson);
                 case POST:
-                    Spark.post(endpoint.route(), (req, res) -> method.invoke(restful), GSON::toJson);
+                    Spark.post(endpoint.route(), (req, res) -> method.invoke(restful, GSON.fromJson(req.body(), JsonObject.class)), GSON::toJson);
                 case PUT:
-                    Spark.put(endpoint.route(), (req, res) -> method.invoke(restful), GSON::toJson);
+                    Spark.put(endpoint.route(), (req, res) -> method.invoke(restful, GSON.fromJson(req.body(), JsonObject.class)), GSON::toJson);
                 case PATCH:
-                    Spark.patch(endpoint.route(), (req, res) -> method.invoke(restful), GSON::toJson);
+                    Spark.patch(endpoint.route(), (req, res) -> method.invoke(restful, GSON.fromJson(req.body(), JsonObject.class)), GSON::toJson);
                 case DELETE:
-                    Spark.delete(endpoint.route(), (req, res) -> method.invoke(restful), GSON::toJson);
+                    Spark.delete(endpoint.route(), (req, res) -> method.invoke(restful, GSON.fromJson(req.body(), JsonObject.class)), GSON::toJson);
             }
         }
     }
